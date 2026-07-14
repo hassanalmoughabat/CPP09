@@ -51,14 +51,17 @@ void PmergeMe::parseInput(int argc, char **argv)
 // Generates 0-based insertion order for 'n' remaining pend elements.
 // Correct Jacobsthal grouping: group k covers indices [j[k]-2 .. j[k-1]-1].
 // The straggler (if any) is already appended to the pend array by the caller.
-static std::vector<size_t> jacobsthalOrder(size_t n)
+// Templated on the index container (std::vector<size_t> or std::deque<size_t>)
+// so each sorting path stays inside its own container family.
+template <typename IdxC>
+static IdxC jacobsthalOrder(size_t n)
 {
-	std::vector<size_t> order;
+	IdxC order;
 	if (n == 0)
 		return order;
 	// Use Jacobsthal sequence starting at 1,3,5,11,21,...
 	// (avoids the duplicate j[2]=j[1]=1 when starting from 0,1)
-	std::vector<size_t> j;
+	IdxC j;
 	j.push_back(1);
 	j.push_back(3);
 	while (j.back() < n + 1)
@@ -66,7 +69,7 @@ static std::vector<size_t> jacobsthalOrder(size_t n)
 		size_t nx = j[j.size() - 1] + 2 * j[j.size() - 2];
 		j.push_back(nx);
 	}
-	std::vector<bool> used(n, false);
+	IdxC used(n, 0);
 	for (size_t k = 1; k < j.size(); k++)
 	{
 		// Group k: push indices from (j[k]-2) down to (j[k-1]-1)
@@ -80,7 +83,7 @@ static std::vector<size_t> jacobsthalOrder(size_t n)
 			if (!used[i])
 			{
 				order.push_back(i);
-				used[i] = true;
+				used[i] = 1;
 			}
 		}
 	}
@@ -174,7 +177,7 @@ static void fjSortVec(std::vector<int> &arr, std::vector<size_t> &perm, size_t &
 		pendAllPos[count] = static_cast<size_t>(-1);
 	}
 
-	std::vector<size_t> order = jacobsthalOrder(pendTotal - 1);
+	std::vector<size_t> order = jacobsthalOrder<std::vector<size_t> >(pendTotal - 1);
 	for (size_t k = 0; k < order.size(); k++)
 	{
 		size_t idx = order[k] + 1;
@@ -210,7 +213,7 @@ void PmergeMe::fordJohnsonSort(std::vector<int> &container, size_t &comps)
 
 // ===================== DEQUE =====================
 
-static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &comps)
+static void fjSortDeq(std::deque<int> &arr, std::deque<size_t> &perm, size_t &comps)
 {
 	size_t n = arr.size();
 	perm.resize(n);
@@ -223,8 +226,8 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 	int straggler = hasStraggler ? arr[n - 1] : 0;
 	size_t count = n / 2;
 
-	std::deque<int>     mainChain(count), pendChain(count);
-	std::vector<size_t> mainIdx(count), pendIdx(count);
+	std::deque<int>    mainChain(count), pendChain(count);
+	std::deque<size_t> mainIdx(count), pendIdx(count);
 	for (size_t i = 0; i < count; i++)
 	{
 		++comps;
@@ -240,11 +243,11 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 		}
 	}
 
-	std::vector<size_t> mainPerm;
+	std::deque<size_t> mainPerm;
 	fjSortDeq(mainChain, mainPerm, comps);
 
-	std::deque<int>     sp(count);
-	std::vector<size_t> spIdx(count), smIdx(count);
+	std::deque<int>    sp(count);
+	std::deque<size_t> spIdx(count), smIdx(count);
 	for (size_t i = 0; i < count; i++)
 	{
 		sp[i]    = pendChain[mainPerm[i]];
@@ -252,8 +255,8 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 		smIdx[i] = mainIdx[mainPerm[i]];
 	}
 
-	std::deque<int>     sorted;
-	std::vector<size_t> sortedOrig;
+	std::deque<int>    sorted;
+	std::deque<size_t> sortedOrig;
 	sorted.push_back(sp[0]);
 	sortedOrig.push_back(spIdx[0]);
 	for (size_t i = 0; i < count; i++)
@@ -262,14 +265,14 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 		sortedOrig.push_back(smIdx[i]);
 	}
 
-	std::vector<size_t> pos(count);
+	std::deque<size_t> pos(count);
 	for (size_t i = 0; i < count; i++)
 		pos[i] = i + 1;
 
 	size_t pendTotal = count + (hasStraggler ? 1 : 0);
-	std::vector<int>    pendAll(pendTotal);
-	std::vector<size_t> pendAllIdx(pendTotal);
-	std::vector<size_t> pendAllPos(pendTotal);
+	std::deque<int>    pendAll(pendTotal);
+	std::deque<size_t> pendAllIdx(pendTotal);
+	std::deque<size_t> pendAllPos(pendTotal);
 	for (size_t i = 0; i < count; i++)
 	{
 		pendAll[i]    = sp[i];
@@ -283,7 +286,7 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 		pendAllPos[count] = static_cast<size_t>(-1);
 	}
 
-	std::vector<size_t> order = jacobsthalOrder(pendTotal - 1);
+	std::deque<size_t> order = jacobsthalOrder<std::deque<size_t> >(pendTotal - 1);
 	for (size_t k = 0; k < order.size(); k++)
 	{
 		size_t idx = order[k] + 1;
@@ -313,7 +316,7 @@ static void fjSortDeq(std::deque<int> &arr, std::vector<size_t> &perm, size_t &c
 
 void PmergeMe::fordJohnsonSort(std::deque<int> &container, size_t &comps)
 {
-	std::vector<size_t> perm;
+	std::deque<size_t> perm;
 	fjSortDeq(container, perm, comps);
 }
 

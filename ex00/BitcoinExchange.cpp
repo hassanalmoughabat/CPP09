@@ -56,13 +56,26 @@ bool BitcoinExchange::isValidDate(const std::string &date) const
 
 bool BitcoinExchange::isValidValue(const std::string &value, float &result) const
 {
+	size_t i = 0;
+	bool hasDigit = false;
+	bool hasDot = false;
+
 	if (value.empty())
 		return false;
-	char *endptr;
-	double val = std::strtod(value.c_str(), &endptr);
-	if (*endptr != '\0')
+	if (value[i] == '+' || value[i] == '-')
+		i++;
+	for (; i < value.length(); i++)
+	{
+		if (std::isdigit(value[i]))
+			hasDigit = true;
+		else if (value[i] == '.' && !hasDot)
+			hasDot = true;
+		else
+			return false;
+	}
+	if (!hasDigit)
 		return false;
-	result = static_cast<float>(val);
+	result = static_cast<float>(std::strtod(value.c_str(), NULL));
 	return true;
 }
 
