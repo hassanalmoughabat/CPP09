@@ -35,11 +35,11 @@ void PmergeMe::parseInput(int argc, char **argv)
 			throw std::runtime_error("Error");
 		for (size_t j = 0; j < arg.length(); j++)
 		{
-			if (!std::isdigit(arg[j]))
+			if (!std::isdigit(static_cast<unsigned char>(arg[j])))
 				throw std::runtime_error("Error");
 		}
 		long num = std::atol(arg.c_str());
-		if (num <= 0 || num > 2147483647L)
+		if (num < 0 || num > 2147483647L)
 			throw std::runtime_error("Error");
 		_vec.push_back(static_cast<int>(num));
 		_deq.push_back(static_cast<int>(num));
@@ -322,17 +322,18 @@ void PmergeMe::fordJohnsonSort(std::deque<int> &container, size_t &comps)
 
 void PmergeMe::sort()
 {
-	_sortedVec = _vec;
-	_sortedDeq = _deq;
 	_compVec = 0;
 	_compDeq = 0;
 
+	// time includes data management (loading the container) + sorting
 	clock_t start = clock();
+	_sortedVec = _vec;
 	fordJohnsonSort(_sortedVec, _compVec);
 	clock_t end = clock();
 	_timeVec = static_cast<double>(end - start) / CLOCKS_PER_SEC * 1000000.0;
 
 	start = clock();
+	_sortedDeq = _deq;
 	fordJohnsonSort(_sortedDeq, _compDeq);
 	end = clock();
 	_timeDeq = static_cast<double>(end - start) / CLOCKS_PER_SEC * 1000000.0;

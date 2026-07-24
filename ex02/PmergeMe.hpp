@@ -8,6 +8,7 @@
 #include <sstream>
 #include <ctime>
 #include <cstdlib>
+#include <cctype>
 #include <stdexcept>
 #include <algorithm>
 
